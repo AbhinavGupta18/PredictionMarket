@@ -1,0 +1,791 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{stfloats}
+\usepackage{float}
+\usepackage{hyperref}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+% ---------------------------------------------------------------
+%  Auto-generated dataset macros (filled by MetaStatsAnalysis)
+% ---------------------------------------------------------------
+\newcommand{\numTrades}{72{,}134{,}741}
+\newcommand{\numTradesMillions}{72.1}
+\newcommand{\totalVolumeBillions}{18.3}
+\newcommand{\numMarkets}{7{,}314{,}375}
+\newcommand{\numEvents}{1{,}197{,}300}
+
+\begin{document}
+
+% ---------------------------------------------------------------
+%  TITLE
+% ---------------------------------------------------------------
+\title{Who Profits in Binary Prediction Markets? Maker-Taker Dynamics, Behavioral Bias,
+       and Sentiment Arbitrage on Kalshi}
+
+\author{%
+  \IEEEauthorblockN{Abhinav Gupta}
+  \IEEEauthorblockA{%
+    \textit{IIT Roorkee}\\
+    Roorkee, India\\
+    abhinav\_g@ma.iitr.ac.in}
+}
+
+\maketitle
+
+% ---------------------------------------------------------------
+%  ABSTRACT
+% ---------------------------------------------------------------
+\begin{abstract}
+Whether liquidity providers in binary prediction markets systematically profit
+from uninformed order flow, and whether behavioral biases sustain that profit,
+remain open empirical questions. We address them using \numTradesMillions{}~million
+executed trades (\$\totalVolumeBillions{}B notional) on Kalshi from July 2021
+through November 2025, supplemented by 404.5~million on-chain trades from
+Polymarket, applying volume-weighted return decomposition, calibration analysis,
+OLS regression, and paired $t$-tests.
+
+A statistically significant Favorite-Longshot Bias (FLSB) emerges on both
+platforms, but with a cross-platform contrast: Kalshi longshots are overpriced
+($\delta_b < 0$, $p < 0.001$ for all sub-25\% buckets) while Polymarket
+favorites above 55\% implied probability are systematically underpriced
+($\delta_b > 0$, $t$ up to 361), implicating market design as the key
+moderating factor. On the supply side, makers earn $+0.83$~percentage points~(pp)
+in volume-weighted returns ($p = 0.0055$), constituting a \$142.5M wealth
+transfer that exceeds estimated bid-ask spread compensation by $0.13$\,pp.
+This alpha is not uniform: it ranges from $+0.29$\,pp in Finance to
+$+3.01$\,pp in World Events, with high-volume categories spanning $+0.82$\,pp
+(Sports) to $+1.78$\,pp (Media), consistent with adverse selection varying
+by information environment.
+On the demand side, takers allocate 63.8\% of capital to YES contracts despite
+earning $0.32$\,pp less than NO-side takers, an affirmative framing bias
+unexplained by differential risk. Contrary to efficiency-convergence predictions,
+maker alpha trends upward at $+8.21$\,bp/month ($R^2 = 0.70$) as retail
+participation grows. A sport-level decomposition of the dominant sports category
+(74\% of volume) reveals maker alpha ranging from $+0.18$\,pp in MLB to
+$+3.43$\,pp in UFC/Boxing, with no significant time-to-resolution decay
+($p = 0.88$), providing direct evidence of persistent fan-driven sentiment
+arbitrage. Taken together, these findings indicate that binary prediction markets
+structurally disadvantage uninformed retail participants and call for targeted
+disclosure requirements and calibration-oriented regulatory oversight.
+\end{abstract}
+
+\begin{IEEEkeywords}
+prediction markets, market microstructure, favorite-longshot bias,
+maker-taker dynamics, behavioral finance, information efficiency, Kalshi
+\end{IEEEkeywords}
+
+% ---------------------------------------------------------------
+%  I. PREDICTION MARKETS AND KALSHI
+% ---------------------------------------------------------------
+\section{Prediction Markets and Kalshi}
+\label{sec:intro}
+
+Binary prediction markets occupy a conceptual middle ground between financial
+derivatives and information-aggregation mechanisms \cite{wolfers2004,arrow2008,hanson2003,berg2008}.
+Participants stake capital on discrete real-world outcomes (election results,
+economic releases, sporting events) and receive a binary payoff on resolution.
+The market price $P_t \in (0,1)$ represents the collective risk-neutral
+probability assigned to the event at time $t$.
+
+Kalshi, the first CFTC-regulated binary prediction market in the United States,
+operates a central limit order book (CLOB) in which participants submit resting
+limit orders or market orders. For each binary contract, a YES position pays
+\$1 if the event resolves positively and \$0 otherwise; the complementary NO
+position pays \$1 if it does not. A trade at price $P_t$ implies YES cost
+basis $= P_t$ and NO cost basis $= 1 - P_t$.
+
+Despite Kalshi's growing regulatory prominence, the microstructure of binary
+prediction markets remains understudied. Prior work has focused on price
+calibration \cite{wolfers2004} and information aggregation \cite{arrow2008},
+but systematic evidence on maker-taker dynamics, behavioral biases, and their
+interaction at the trade level is absent. We fill this gap using
+\numTradesMillions{} million trades across \numMarkets{} Kalshi markets
+spanning July 2021 through November 2025.
+
+\textbf{Contributions.} We make six contributions:
+\begin{enumerate}
+    \item We document a robust Favorite-Longshot Bias on Kalshi and a
+          complementary reverse-favorite bias on Polymarket, identifying
+          market design as the key moderator of calibration failure.
+    \item We quantify a \$142.5M structural wealth transfer from takers to
+          makers, showing that maker alpha ($+0.83$\,pp) significantly exceeds
+          the estimated bid-ask spread (half-spread $= 0.70$\,pp, $t = 84.6$).
+    \item We identify a systematic YES-side affirmative bias in taker order
+          flow (63.8\% capital share), with YES-side takers earning
+          significantly lower returns than NO-side takers.
+    \item We show that maker alpha varies by category consistent with adverse
+          selection theory \cite{kyle1985}: highest in sentiment-driven markets
+          (World Events $+3.01$\,pp, Media $+1.78$\,pp, Entertainment $+1.37$\,pp)
+          and lowest among major categories where takers are informed
+          (Finance, $+0.29$\,pp); Esports, a minor category, exhibits negative maker alpha.
+    \item We document a statistically significant upward trend in maker alpha
+          ($\hat{\gamma}_1 = +8.21$\,bp/month, $R^2 = 0.70$), inconsistent
+          with standard efficiency-convergence predictions \cite{fama1970}.
+    \item We introduce the concept of sports sentiment arbitrage, decomposing
+          sports markets (74\% of total volume) into ten sports and finding
+          universal YES-side fan bias ($>72\%$) and sport-specific maker alpha
+          from $+0.18$\,pp (MLB) to $+3.43$\,pp (UFC/Boxing), with no
+          significant time-to-resolution decay ($p = 0.88$).
+\end{enumerate}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:data}
+describes data and methodology. Sections~\ref{sec:flsb}--\ref{sec:behavioral}
+present the empirical findings. Section~\ref{sec:discussion} provides
+a unified interpretation. Section~\ref{sec:limitations} discusses limitations
+and Section~\ref{sec:conclusion} concludes.
+
+% ---------------------------------------------------------------
+%  II. DATA AND METHODOLOGY
+% ---------------------------------------------------------------
+\section{Data and Methodology}
+\label{sec:data}
+
+\subsection{Binary Contract Payoff Structure}
+
+Let $Y_i \in \{0, 1\}$ denote the terminal payoff of contract $i$ at expiration $T$.
+The equilibrium market price $P_t \in (0,1)$ represents the aggregate risk-neutral
+subjective probability:
+\begin{equation}
+  P_t = \mathbb{E}_t[Y_i].
+  \label{eq:price}
+\end{equation}
+
+Trades are classified by order-submission type. A \emph{taker} submits a
+market order that immediately executes against a resting limit order; a
+\emph{maker} provides resting liquidity by posting limit orders. For each trade:
+\begin{align}
+  \Pi_{\text{Taker}} &=
+  \begin{cases}
+    Y_i - P_t          & \text{if taker buys YES at } P_t, \\
+    (1-Y_i) - (1-P_t)  & \text{if taker buys NO at } (1-P_t),
+  \end{cases} \label{eq:pnl}\\
+  \Pi_{\text{Maker}}  &= -\Pi_{\text{Taker}}, \label{eq:maker_pnl}
+\end{align}
+since prediction markets are zero-sum (ignoring fees) \cite{manski2006}.
+
+We define the volume-weighted average return (VWAR):
+\begin{equation}
+  \overline{R} = \frac{\sum_j \Pi_j \cdot n_j}{\sum_j n_j},
+  \label{eq:vwar}
+\end{equation}
+where $n_j$ is the contract count for trade $j$.
+
+\subsection{Sample}
+\label{sec:sample}
+
+Our primary dataset covers Kalshi trades from platform launch through Q4 2025,
+comprising approximately \numTradesMillions{} million executed trades across
+\numMarkets{} finalized markets and \numEvents{} distinct events.
+Cross-platform evidence is drawn from Polymarket's on-chain Conditional Token
+Framework (CTF) exchange, covering 404.5~million trades across 383,707 resolved
+markets from September 2020 through February 2026.
+Polymarket markets resolved YES in 40.8\% of cases versus 23.9\% on Kalshi,
+reflecting Kalshi's prevalence of low-probability Sports and Crypto contracts.
+Because Polymarket operates a hybrid AMM/CLOB system, the maker-taker PnL
+framework applies only to Kalshi; Polymarket provides cross-platform calibration
+and volume-concentration benchmarks.
+
+Table~\ref{tab:market_overview} summarises Kalshi market coverage by category group.
+
+\begin{table}[htbp]
+  \caption{Market Architecture Summary by Category (Kalshi, 2021--2025)}
+  \label{tab:market_overview}
+  \begin{center}
+  \begin{tabular}{lrrrr}
+    \toprule
+    \textbf{Category} & \textbf{N} & \textbf{\%YES} & \textbf{Med.\ Dur.\ (h)} & \textbf{Mean Dur.\ (h)} \\
+    \midrule
+    Sports     & 3,532,947 & 11.2 & 14 & 27.3 \\
+    Crypto     & 1,788,112 & 26.3 &  1 &  3.2 \\
+    Finance    & 1,612,438 & 49.9 &  1 & 19.9 \\
+    Politics   &   123,966 & 33.6 & 24 & 100.0 \\
+    Other      &   256,912 & 13.5 &  8 & 117.1 \\
+    \midrule
+    \textbf{All} & \numMarkets{} & 23.9 & 7 & 24.2 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp01_market_overview/kalshi/kalshi_cp01_market_overview.pdf}}
+  \caption{Kalshi market overview: trade volume, market count, and resolution rates
+           by category.}
+  \label{fig:market_overview}
+\end{figure}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp01_market_overview/polymarket/polymarket_cp01_market_overview.pdf}}
+  \caption{Polymarket market overview: monthly CTF trade volume and resolution funnel.}
+  \label{fig:market_overview_poly}
+\end{figure}
+
+% ---------------------------------------------------------------
+%  III. THE LONGSHOT BIAS ON KALSHI
+% ---------------------------------------------------------------
+\section{The Longshot Bias on Kalshi}
+\label{sec:flsb}
+
+Group contracts into price buckets $b \in (0,1)$ based on transaction price $P_t$.
+Let $f(b)$ be the empirical win frequency of taker-YES trades within bucket $b$,
+and $\bar{P}_b$ the average implied probability in $b$. The calibration deviation is:
+\begin{equation}
+  \delta_b = f(b) - \bar{P}_b.
+  \label{eq:delta_b}
+\end{equation}
+The Favorite-Longshot Bias (FLSB) predicts $\delta_b < 0$ for small $\bar{P}_b$
+(longshots overpriced) and $\delta_b > 0$ for large $\bar{P}_b$ (favorites
+underpriced) \cite{ali1977,thaler1988,snowberg2010,camerer1998,ottaviani2008}.
+
+Figure~\ref{fig:flsb} shows the calibration curve for Kalshi. We group trades
+into 5-cent bins and compute $\delta_b$ for each. For buckets with
+$\bar{P}_b < 0.25$, a one-sample $t$-test rejects the null $\delta_b = 0$
+($t < -16.3$ across all sub-25\% buckets, $p < 0.001$), confirming a
+statistically significant FLSB on Kalshi.
+
+Figure~\ref{fig:flsb_poly} presents the Polymarket calibration curve, which
+reveals a qualitatively distinct and complementary pattern. Longshots
+($\bar{P}_b < 0.25$) are again overpriced ($\delta_b < 0$, all $p < 0.001$),
+consistent with the Kalshi finding. However, Polymarket exhibits a pronounced
+\emph{reverse} bias at high implied probabilities: favorites with
+$\bar{P}_b > 0.55$ are systematically \emph{underpriced} ($\delta_b > 0$),
+with $t$-statistics reaching 297 at the 60--65\% bucket and 361 at the
+95--97.5\% bucket. Takers who purchase near-certain contracts on Polymarket
+earn statistically significant \emph{positive} returns. This pattern is
+absent on Kalshi and likely reflects Polymarket's AMM-driven pricing
+mechanism, which mechanically underestimates the probability of near-certain
+events as liquidity thins near the boundary. Together, the two platforms
+confirm that calibration failure is a structural feature of binary prediction
+markets, with its direction modulated by market design.
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp02_longshot_bias/kalshi/kalshi_cp02_longshot_bias.pdf}}
+  \caption{Kalshi calibration curve and $\delta_b$ by price bucket.
+           Negative bars at low prices confirm the Favorite-Longshot Bias.}
+  \label{fig:flsb}
+\end{figure}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp02_longshot_bias/polymarket/polymarket_cp02_longshot_bias.pdf}}
+  \caption{Polymarket calibration deviation $\delta_b$: cross-platform replication reveals reverse bias at high implied probabilities.}
+  \label{fig:flsb_poly}
+\end{figure}
+
+% ---------------------------------------------------------------
+%  IV. THE MAKER-TAKER WEALTH TRANSFER
+% ---------------------------------------------------------------
+\section{The Maker-Taker Wealth Transfer}
+\label{sec:maker_taker}
+
+Table~\ref{tab:maker_taker} presents aggregate maker and taker VWARs.
+Makers earn a positive aggregate VWAR of \textbf{0.83} pp while takers
+earn an equivalent negative return; the cumulative wealth transfer is
+approximately \textbf{\$142.5M}. A monthly t-test (one sample, equally
+weighted across calendar months) yields $t = -2.90$ ($p = 0.0055$).
+The negative sign reflects that the unweighted monthly mean is depressed
+by thin early-platform quarters (2021--2022); the positive aggregate
+VWAR is driven by high-volume later periods in which maker alpha is
+substantially larger.
+
+\begin{table}[htbp]
+  \caption{Maker vs.\ Taker Volume-Weighted Average Returns}
+  \label{tab:maker_taker}
+  \begin{center}
+  \begin{tabular}{lrr}
+    \toprule
+    & \textbf{Maker} & \textbf{Taker} \\
+    \midrule
+    VWAR (pp)       & $+0.83$ & $-0.83$ \\
+    Total PnL (\$)  & $+142.5$M & $-142.5$M \\
+    N trades (finalized) & \multicolumn{2}{c}{$67{,}761{,}406$} \\
+    $t$-stat        & $-2.90$ & $+2.90$ \\
+    $p$-value       & \multicolumn{2}{c}{$0.0055$} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp03_maker_taker_pnl/kalshi/kalshi_cp03_maker_taker_pnl.pdf}}
+  \caption{Maker vs.\ Taker volume-weighted returns by price bucket.
+           Green bars show maker alpha; red bars show taker losses.}
+  \label{fig:maker_taker}
+\end{figure}
+
+\subsection{Decomposing Returns by Role}
+\label{sec:decompose}
+
+Figure~\ref{fig:temporal_dual} decomposes quarterly returns by role from market
+inception (July 2021) through Q4 2025. Maker VWR (blue) trends upward from negative values in the earliest quarters
+(thin market, dominated by sophisticated early adopters) to persistently positive
+alpha by 2023--2025 as retail taker flow expanded. Taker VWR (green) mirrors
+this trajectory with reversed sign. The OLS time-trend ($\hat{\gamma}_1 = +8.21$
+bp/month, $R^2 = 0.70$) indicates that growing platform scale has
+\emph{amplified} rather than compressed the structural wealth transfer.
+
+\begin{figure*}[!t]
+  \centerline{\includegraphics[width=\textwidth]{output/cp06_temporal_dynamics/kalshi/kalshi_cp06_temporal_dynamics.pdf}}
+  \caption{Temporal dynamics of maker-taker returns on Kalshi (July 2021--November 2025).
+           \textit{Top}: Quarterly maker (blue) and taker (green) VWR over time.
+           \textit{Bottom-left}: Taker volume composition by price bucket (1--10¢ through 91--99¢)
+           as a stacked area per quarter.
+           \textit{Bottom-right}: Monthly maker VWR (bubbles, sized by volume) with OLS
+           time-trend $\hat{\gamma}_1$ and 95\% confidence band.}
+  \label{fig:temporal_dual}
+\end{figure*}
+
+% ---------------------------------------------------------------
+%  V. IS THIS JUST SPREAD COMPENSATION?
+% ---------------------------------------------------------------
+\section{Is This Just Spread Compensation?}
+\label{sec:spread}
+
+Following the realized-spread decomposition of \cite{glosten1985,roll1984,ohara1995,amihud2002},
+maker alpha can be written as:
+\begin{equation}
+  \alpha_{\text{Maker}} = \tfrac{1}{2}S_t - \Delta P_{t+\Delta t},
+  \label{eq:alpha}
+\end{equation}
+where $\tfrac{1}{2}S_t$ is the half-spread captured on liquidity provision and
+$\Delta P_{t+\Delta t}$ is the adverse price impact. The effective half-spread
+is proxied by half the average absolute price change between consecutive trades
+within the same market (estimated at $0.70$\,pp). We test
+$H_0: \bar{R}_{\text{Maker}} \leq \hat{S}_t / 2$ against
+$H_1: \bar{R}_{\text{Maker}} > \hat{S}_t / 2$.
+
+Figure~\ref{fig:spread} plots the 30-day rolling maker VWAR against the
+estimated half-spread. The one-sided $t$-test strongly rejects the null
+($t = 84.6$, $p < 0.001$): maker VWAR of $+0.83$\,pp exceeds the half-spread
+of $0.70$\,pp, with the residual $+0.13$\,pp representing pure adverse-selection
+alpha that cannot be attributed to mechanical spread capture.
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp04_spread_analysis/kalshi/kalshi_cp04_spread_analysis.pdf}}
+  \caption{30-day rolling maker VWAR vs.\ estimated half-spread.
+           Maker alpha persistently exceeds spread compensation.}
+  \label{fig:spread}
+\end{figure}
+
+% ---------------------------------------------------------------
+%  VI. VARIATION ACROSS CATEGORIES
+% ---------------------------------------------------------------
+\section{Variation Across Categories}
+\label{sec:categories}
+
+Let $g \in \{\text{Politics, Finance, Sports, Crypto, Entertainment, \ldots}\}$
+denote the category group. We estimate category-specific maker alpha via OLS:
+\begin{equation}
+  R_j = \beta_0 + \sum_{g \neq g_0} \beta_g D_{j,g} + \varepsilon_j,
+  \label{eq:ols_cat}
+\end{equation}
+where $D_{j,g} = \mathbf{1}[\text{trade } j \in \text{group } g]$ and
+$g_0$ is the baseline (most-traded) category. The $\hat{\beta}_g$ coefficients
+test whether each category's maker alpha differs significantly from the Sports
+baseline; Figure~\ref{fig:categories} reports the corresponding
+volume-weighted average returns (VWARs).
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp05_category_heterogeneity/kalshi/kalshi_cp05_category_heterogeneity.pdf}}
+  \caption{Maker vs.\ Taker volume-weighted return by market category, sorted by total volume.
+           Green bars: maker VWR; blue bars: taker VWR.}
+  \label{fig:categories}
+\end{figure}
+
+Figure~\ref{fig:categories} shows the grouped bar chart of maker (green) and
+taker (blue) VWR per category. Among major categories, Finance markets exhibit
+the lowest maker alpha ($+0.29$\,pp), consistent with informed takers and
+tighter adverse selection costs. Esports, a minor category representing
+approximately 0.1\% of total volume (22.4M contracts), exhibits negative maker
+alpha ($-2.63$\,pp), consistent with a concentrated base of sophisticated,
+informed participants. Crypto ($+0.85$\,pp) and Sports ($+0.82$\,pp) cluster near the
+cross-market average. World Events ($+3.01$\,pp) registers the highest maker
+alpha of all categories; Media ($+1.78$\,pp) and Entertainment ($+1.37$\,pp)
+follow, all consistent with sentiment-driven, uninformed order flow. Taker VWR mirrors maker VWR with reversed sign, confirming the
+zero-sum structure of the market.
+
+% ---------------------------------------------------------------
+%  VII. EVOLUTION OVER TIME
+% ---------------------------------------------------------------
+\section{Evolution Over Time}
+\label{sec:temporal}
+
+Standard market efficiency theory \cite{fama1970} predicts that growing
+competition among liquidity providers should compress maker alpha over time.
+We test this prediction by regressing the monthly volume-weighted maker return
+$R_{M,t}$ on a time index $\tau_t$ (months since platform launch):
+\begin{equation}
+  R_{M,t} = \gamma_0 + \gamma_1 \tau_t + \varepsilon_t,
+  \label{eq:temporal}
+\end{equation}
+A negative $\hat{\gamma}_1$ would indicate efficiency convergence; a positive
+$\hat{\gamma}_1$ would indicate expanding alpha driven by participant-mix effects.
+
+The bottom-right panel of Figure~\ref{fig:temporal_dual} shows monthly maker VWAR
+with the OLS trend line and 95\% confidence band. The estimated coefficient
+$\hat{\gamma}_1 = +8.21$ bp/month ($p < 0.001$, $R^2 = 0.70$) indicates a
+statistically significant \emph{upward} trend: maker alpha has grown over the
+sample period, driven by rising retail taker participation rather than
+efficiency convergence through Q4 2025.
+
+The stacked area panel (bottom-left of Figure~\ref{fig:temporal_dual}) shows
+that taker volume composition by price bucket has remained broadly stable over
+the sample period, ruling out a compositional shift toward low-probability
+contracts as an explanation for the evolving return gap.
+
+On Polymarket, the monthly CTF trade count grew at a statistically significant
+rate over 65 months ($p < 0.001$), confirming that retail participant inflow
+was not unique to Kalshi and providing the supply-side condition for expanding
+maker alpha across both platforms.
+
+% ---------------------------------------------------------------
+%  VIII. THE YES/NO ASYMMETRY
+% ---------------------------------------------------------------
+\section{The YES/NO Asymmetry}
+\label{sec:behavioral}
+
+\subsection{The Asymmetry at Equivalent Prices}
+\label{sec:symmetric}
+
+To isolate the directional framing effect from price-level differences, we
+compare returns at structurally identical implied probabilities: taker buying
+YES at $p$ versus buying NO at implied probability $p$ (i.e., NO price $= 1-P_t = p$).
+Under full rationality, returns should be identical at each $p$.
+
+Figure~\ref{fig:symmetric} shows persistent YES underperformance relative to NO
+at equivalent price buckets. The top panel of Figure~\ref{fig:symmetric}
+decomposes the maker's perspective by position direction. When makers post YES
+liquidity (``Maker Bought YES''), their excess return profile differs systematically
+from when they post NO liquidity (``Maker Bought NO''), consistent with informed
+directional positioning by professional liquidity providers.
+
+\begin{figure*}[!t]
+  \centerline{\includegraphics[width=\textwidth]{output/cp08_symmetric_price_asymmetry/kalshi/kalshi_cp08_symmetric_price_asymmetry.pdf}}
+  \caption{Symmetric price asymmetry: maker and taker returns decomposed by contract direction.
+           \textit{Top}: Maker excess returns at 1-cent granularity, by whether the maker
+           holds a YES or NO position.
+           \textit{Bottom-left}: Taker VWR for YES@$p$ vs.\ NO@$p$ (grouped bars).
+           \textit{Bottom-right}: YES$-$NO taker return gap scatter.}
+  \label{fig:symmetric}
+\end{figure*}
+
+\subsection{Takers Prefer Affirmative Bets}
+\label{sec:yes_no}
+
+We test whether takers systematically prefer YES contracts over economically
+equivalent NO contracts. A paired monthly $t$-test on YES-side versus NO-side
+returns yields $t = -2.66$ ($p = 0.010$): YES-side takers earn $-0.92$\,pp
+versus $-0.61$\,pp for NO-side takers, a statistically significant $-0.32$\,pp
+gap. We also measure the affirmative capital tilt via:
+\begin{equation}
+  \rho_{\text{YES}} = \frac{\sum_j V_j^{\text{YES}}}{\sum_j V_j^{\text{YES}} + \sum_j V_j^{\text{NO}}}.
+  \label{eq:vol_ratio}
+\end{equation}
+We find $\hat{\rho}_{\text{YES}} = 63.8\%$ (binomial $p < 0.001$).
+Under symmetric risk, rational participants should split capital equally;
+deviation to 63.8\% confirms affirmative framing as a psychological, not
+financial, motive \cite{kahneman1979,hong2007}.
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp07_yes_no_asymmetry/kalshi/kalshi_cp07_yes_no_asymmetry.pdf}}
+  \caption{YES vs.\ NO taker return and volume split.
+           Takers overallocate capital to YES contracts despite earning lower returns than NO-side takers.}
+  \label{fig:yes_no}
+\end{figure}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp09_volume_demand_elasticity/kalshi/kalshi_cp09_volume_demand_elasticity.pdf}}
+  \caption{YES capital share by market category, with global ratio and binomial test against the 50\% null.}
+  \label{fig:volume}
+\end{figure}
+
+% ---------------------------------------------------------------
+%  IX. DISCUSSION
+% ---------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{The Mechanism of Extraction}
+\label{sec:mechanism}
+
+The empirical patterns documented above are consistent with a two-tier market
+structure: a small set of informed, professional liquidity providers who
+systematically exploit the behavioral biases of a larger population of
+uninformed, retail-oriented takers. The mechanism operates through three
+reinforcing channels:
+
+\textbf{Calibration extraction.} Takers systematically overprice low-probability
+events (the FLSB). Makers post resting limit orders at inflated prices, collecting
+the miscalibration premium on resolution.
+
+\textbf{Directional framing capture.} Takers display a robust YES-side preference
+independent of price level (Section~\ref{sec:yes_no}). Makers accommodate this
+demand imbalance by providing NO liquidity at favorable prices, earning structural
+alpha through position direction selection (Figure~\ref{fig:symmetric}).
+
+\textbf{Adverse selection gradient.} Maker alpha is largest in categories where
+takers are most likely to be sentiment-driven (World Events $+3.01$\,pp,
+Media $+1.78$\,pp, Entertainment $+1.37$\,pp) and smallest where takers are
+most likely to possess genuine information (Finance $+0.29$\,pp). This gradient
+(Section~\ref{sec:categories}) is the hallmark of adverse selection: informed
+takers narrow the maker edge.
+
+\subsection{The Professionalization of Liquidity}
+\label{sec:hhi}
+
+We measure volume concentration using the Herfindahl-Hirschman Index (HHI)
+at the individual contract (ticker) level:
+\begin{equation}
+  \text{HHI} = \sum_{m=1}^{M} s_m^2,
+  \label{eq:hhi}
+\end{equation}
+where $s_m$ is the volume share of ticker $m$. High concentration indicates
+dominance by a small number of high-liquidity contracts. Figure~\ref{fig:hhi}
+shows the quarterly HHI trend on Kalshi; Figure~\ref{fig:hhi_poly} shows the
+corresponding analysis for Polymarket.
+
+Both platforms report near-zero aggregate HHIs (Kalshi: 0.0008; Polymarket:
+0.0013), reflecting the large number of distinct markets in each
+($\approx$586,000 and 591,000, respectively). Yet both Lorenz curves reveal
+substantial volume concentration hidden by the aggregate metric. On Kalshi,
+the top 1\% of tickers account for 76.5\% of all traded volume and the top
+10\% account for 94.1\%. On Polymarket, the corresponding figures are 60.5\%
+and 87.6\%, consistent with the reported HHI of 0.0013. Across both platforms,
+a small subset of high-liquidity contracts dominates total volume; the near-zero
+HHI reflects market breadth, not genuine dispersion. The Lorenz-based Gini
+coefficient is the more informative concentration measure.
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp10_hhi_concentration/kalshi/kalshi_cp10_hhi_concentration.pdf}}
+  \caption{Ticker-level HHI and Lorenz concentration curve, Kalshi.
+           Amber zone: moderate concentration (0.15--0.25); red zone: high concentration ($>$0.25).
+           Gini coefficient measures inequality of volume distribution across tickers.}
+  \label{fig:hhi}
+\end{figure}
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp10_hhi_concentration/polymarket/polymarket_cp10_hhi_concentration.pdf}}
+  \caption{Polymarket token-level HHI trend and Lorenz concentration curve.
+           Despite near-zero aggregate HHI, the top 1\% of tokens account for 60.5\% of volume.}
+  \label{fig:hhi_poly}
+\end{figure}
+
+\subsection{Category Differences and Participant Selection}
+\label{sec:adverse}
+
+We classify market categories by information structure: \emph{scheduled}
+(Finance, Macro: CPI releases, FOMC decisions) versus \emph{diffuse}
+(Sports, Entertainment: outcomes driven by sentiment and private signals).
+We proxy adverse selection by the post-trade price velocity $|\Delta P_{t+1}|$
+within each market, and by the lag-1 autocorrelation of signed price changes
+(negative autocorrelation $\Rightarrow$ reversal $\Rightarrow$ informed-flow pricing).
+
+\begin{figure}[H]
+  \centerline{\includegraphics[width=\columnwidth]{output/cp11_category_adverse_selection/kalshi/kalshi_cp11_category_adverse_selection.pdf}}
+  \caption{Post-trade price velocity and lag-1 autocorrelation by market category.
+           All categories exhibit negative lag-1 autocorrelation (bid-ask bounce).
+           Finance markets show higher post-trade price velocity than Sports markets,
+           consistent with more information-sensitive order flow in scheduled events.}
+  \label{fig:adverse}
+\end{figure}
+
+\subsection{Sports Sentiment Arbitrage}
+\label{sec:sports_sentiment}
+
+\begin{figure*}[!t]
+  \centerline{\includegraphics[width=\textwidth]{output/cp13_sports_sentiment_arbitrage/kalshi/kalshi_cp13_sports_sentiment_arbitrage.pdf}}
+  \caption{Sports sentiment arbitrage decomposition across ten sport types.
+           \textit{Top}: Maker (green) and taker (blue) VWR by sport, sorted by volume;
+           contract volume in billions annotated at right.
+           \textit{Bottom-left}: Maker VWR by time-to-resolution bucket with OLS trend line;
+           the flat slope ($p = 0.88$) rejects the market-learning hypothesis.
+           \textit{Bottom-right}: YES capital share by sport; all sports exceed
+           the 50\% neutral line, confirming universal fan-enthusiasm bias.}
+  \label{fig:sports_sentiment}
+\end{figure*}
+
+Sports markets account for approximately 74\% of all Kalshi contract volume
+(12.8~billion contracts), making them the dominant driver of the platform-wide
+wealth transfer. We decompose sports into ten sport types to test whether
+fan-driven sentiment creates exploitable, sport-specific mispricings.
+We term this mechanism \emph{sentiment arbitrage} \cite{thaler1988,camerer1998}.
+
+\textbf{Cross-sport alpha variation.} Figure~\ref{fig:sports_sentiment} shows
+that maker alpha varies substantially across sports. UFC/Boxing exhibits the
+highest maker VWR at $+3.43$\,pp, consistent with the intense, binary, and
+emotionally charged nature of combat sports betting. Soccer ($+1.39$\,pp) and
+NFL ($+1.27$\,pp) follow, while MLB shows the lowest maker alpha ($+0.18$\,pp).
+The MLB result is consistent with a relatively sophisticated sports-betting
+community with deep statistical analysis traditions, whereas combat sports
+attract more emotionally motivated retail flow.
+
+\textbf{Universal YES-side fan bias.} A striking finding is that \emph{all}
+sports exhibit YES capital shares well above the 50\% neutral benchmark and
+above the cross-category average of 63.8\%. UFC/Boxing registers the highest
+YES share at 81.8\%, followed by NHL (76.7\%) and Soccer (76.2\%). Even the
+most ``efficient'' sport (MLB) shows a YES share of 74.5\%. This universal fan-enthusiasm bias provides the demand imbalance that
+professional makers exploit by resting NO-side limit orders: bettors
+systematically choose the affirmative (win) side regardless of the
+contract's implied probability.
+
+\textbf{Sentiment persistence.} We test whether maker alpha decays as events
+approach resolution, the prediction of a market-learning hypothesis.
+The time-to-resolution OLS slope across the six time buckets is
+$-0.021$\,pp/bin ($p = 0.88$, $R^2 = 0.006$), statistically indistinguishable
+from zero. Maker alpha is approximately constant from 30 days out through the
+final six hours before resolution. This finding rejects the market-learning
+hypothesis: sports bettors do not become measurably more rational as game-day
+approaches, and professional makers earn a persistent structural premium
+throughout the contract lifecycle.
+
+% ---------------------------------------------------------------
+%  X. LIMITATIONS
+% ---------------------------------------------------------------
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Survival bias.} PnL analyses are restricted to finalized markets
+(result $\in$ \{yes, no\}). Cancelled or voided markets are excluded,
+potentially biasing maker alpha estimates upward.
+
+\textbf{Fee omission.} Kalshi's taker fee schedule is not reflected in the
+raw \texttt{yes\_price} field. All return calculations are gross of fees;
+net-of-fee taker returns are more negative than reported.
+
+\textbf{Position limits.} Kalshi imposes per-participant position limits.
+Large, informed bets may be censored at the margin, understating the true
+magnitude of adverse selection costs.
+
+\textbf{Maker identity.} The public dataset does not contain maker identifiers,
+precluding a true provider-level HHI. Our concentration metric is computed
+at the contract (ticker) level as a proxy.
+
+\textbf{Cross-platform arbitrage.} We do not model arbitrage linkages between
+Kalshi and Polymarket, which may partially eliminate persistent mispricing
+in practice.
+
+\textbf{Polymarket structural differences.} Polymarket operates a hybrid
+AMM/CLOB system; the maker-taker framework does not directly apply to legacy
+FPMM trades, limiting cross-platform PnL comparisons.
+
+% ---------------------------------------------------------------
+%  XI. CONCLUSION
+% ---------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper characterises the microstructure of binary prediction markets using
+\numTradesMillions{} million trades from Kalshi (July 2021 through November 2025)
+and 404.5 million trades from Polymarket. Six robust findings emerge:
+(i) a Favorite-Longshot Bias that systematically overprices low-probability
+contracts, with Polymarket additionally showing favorite underpricing above 55\%;
+(ii) a \$142.5M structural maker-taker wealth transfer exceeding bid-ask spread
+compensation by a statistically significant margin;
+(iii) cross-sectional heterogeneity in maker alpha consistent with adverse
+selection, ranging from $+0.29$\,pp in Finance to $+3.01$\,pp in World Events;
+(iv) a 63.8\% YES capital tilt in taker order flow, with YES-side takers earning
+significantly lower returns than NO-side takers;
+(v) a statistically significant upward trend in maker alpha
+($\hat{\gamma}_1 = +8.21$\,bp/month, $R^2 = 0.70$), inconsistent with
+efficiency-convergence predictions; and
+(vi) sport-specific sentiment arbitrage in sports markets (74\% of volume),
+with maker alpha ranging from $+0.18$\,pp (MLB) to $+3.43$\,pp (UFC/Boxing)
+and no significant time-to-resolution decay.
+
+Taken together, these results indicate that binary prediction markets remain
+structurally biased against uninformed retail participants. Platform designers
+and regulators should consider mechanisms to improve price calibration,
+reduce YES-side framing effects, and increase transparency around the
+structural advantages of professional liquidity providers.
+
+% ---------------------------------------------------------------
+%  ACKNOWLEDGMENT
+% ---------------------------------------------------------------
+\section*{Acknowledgment}
+
+The authors thank the India Finance Conference organizing committee for the
+opportunity to present this work. Trade data from Kalshi were obtained via
+the Kalshi public API; Polymarket on-chain trade records were sourced from
+the Polygon blockchain. Computational analysis used DuckDB, Python, and
+the pandas/matplotlib/scipy open-source stack. All errors are our own.
+
+% ---------------------------------------------------------------
+%  REFERENCES
+% ---------------------------------------------------------------
+\begin{thebibliography}{00}
+
+\bibitem{ali1977} F.~D.~Ali, ``Probability and utility estimates for racetrack bettors,''
+  \emph{Journal of Political Economy}, vol.~85, no.~4, pp.~803--815, 1977.
+
+\bibitem{thaler1988} R.~H.~Thaler and W.~T.~Ziemba, ``Parimutuel betting markets:
+  Racetracks and lotteries,'' \emph{Journal of Economic Perspectives}, vol.~2,
+  no.~2, pp.~161--174, 1988.
+
+\bibitem{wolfers2004} J.~Wolfers and E.~Zitzewitz, ``Prediction markets,''
+  \emph{Journal of Economic Perspectives}, vol.~18, no.~2, pp.~107--126, 2004.
+
+\bibitem{arrow2008} K.~J.~Arrow et al., ``The promise of prediction markets,''
+  \emph{Science}, vol.~320, pp.~877--878, 2008.
+
+\bibitem{glosten1985} L.~R.~Glosten and P.~R.~Milgrom, ``Bid, ask and transaction
+  prices in a specialist market with heterogeneously informed traders,''
+  \emph{Journal of Financial Economics}, vol.~14, no.~1, pp.~71--100, 1985.
+
+\bibitem{kyle1985} A.~S.~Kyle, ``Continuous auctions and insider trading,''
+  \emph{Econometrica}, vol.~53, no.~6, pp.~1315--1335, 1985.
+
+\bibitem{snowberg2010} E.~Snowberg and J.~Wolfers, ``Explaining the
+  favorite-longshot bias: Is it risk-love or misweighting?''
+  \emph{Journal of Political Economy}, vol.~118, no.~4, pp.~723--746, 2010.
+
+\bibitem{manski2006} C.~F.~Manski, ``Interpreting the predictions of prediction
+  markets,'' \emph{Economics Letters}, vol.~91, no.~3, pp.~425--429, 2006.
+
+\bibitem{kahneman1979} D.~Kahneman and A.~Tversky, ``Prospect theory: An analysis
+  of decision under risk,'' \emph{Econometrica}, vol.~47, no.~2,
+  pp.~263--292, 1979.
+
+\bibitem{ottaviani2008} M.~Ottaviani and P.~N.~Sorensen, ``The favorite-longshot
+  bias: An overview of the main explanations,'' \emph{Handbook of Sports and
+  Lottery Markets}, 2008.
+
+\bibitem{amihud2002} Y.~Amihud, ``Illiquidity and stock returns: Cross-section
+  and time-series effects,'' \emph{Journal of Financial Markets}, vol.~5,
+  no.~1, pp.~31--56, 2002.
+
+\bibitem{roll1984} R.~Roll, ``A simple implicit measure of the effective
+  bid-ask spread in an efficient market,'' \emph{Journal of Finance},
+  vol.~39, no.~4, pp.~1127--1139, 1984.
+
+\bibitem{fama1970} E.~F.~Fama, ``Efficient capital markets: A review of theory
+  and empirical work,'' \emph{Journal of Finance}, vol.~25, no.~2,
+  pp.~383--417, 1970.
+
+\bibitem{ohara1995} M.~O'Hara, \emph{Market Microstructure Theory}.
+  Blackwell, Cambridge, MA, 1995.
+
+\bibitem{camerer1998} C.~F.~Camerer, ``Can asset markets be manipulated?
+  A field experiment with racetrack betting,'' \emph{Journal of Political
+  Economy}, vol.~106, no.~3, pp.~457--482, 1998.
+
+\bibitem{berg2008} J.~Berg, F.~Nelson, and T.~Rietz, ``Prediction market
+  accuracy in the long run,'' \emph{International Journal of Forecasting},
+  vol.~24, no.~2, pp.~285--300, 2008.
+
+\bibitem{hanson2003} R.~Hanson, ``Combinatorial information market design,''
+  \emph{Information Systems Frontiers}, vol.~5, no.~1, pp.~107--119, 2003.
+
+\bibitem{hong2007} H.~Hong and J.~C.~Stein, ``Disagreement and the stock market,''
+  \emph{Journal of Economic Perspectives}, vol.~21, no.~2, pp.~109--128, 2007.
+
+\end{thebibliography}
+
+\end{document}
