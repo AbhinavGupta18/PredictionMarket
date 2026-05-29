@@ -2,7 +2,6 @@
 
 Empirical analysis of liquidity provision, behavioral biases, and market efficiency on binary prediction platforms (Kalshi and Polymarket).
 
-Submitted to the **India Finance Conference (IFC)**.
 
 ## Structure
 
